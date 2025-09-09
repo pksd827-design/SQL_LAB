@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { editor, languages } from 'monaco-editor';
 import type { Schema } from '../types';
-import { generateSqlFromPrompt } from '../services/geminiService';
+import { generateSqlFromPrompt } from '../services/aiService';
 
 // To satisfy TypeScript since the loader script defines a global 'require'
 declare const require: any;
@@ -168,7 +168,7 @@ const SqlEditor: React.FC<SqlEditorProps> = ({ runQuery, isQueryRunning, schemaS
             </div>
 
             {/* SQL Editor Section */}
-            <div className="flex-grow flex flex-col relative">
+            <div className="flex-grow flex flex-col relative overflow-hidden">
                 <label className="block text-sm font-medium text-slate-300 mb-1">SQL Editor</label>
                  <div ref={editorContainerRef} className="flex-grow w-full border border-slate-700 rounded-md" />
             </div>

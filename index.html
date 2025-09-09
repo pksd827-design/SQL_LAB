@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SQL Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load sql.js globally to avoid module conflicts with Monaco Editor's loader -->
+  <script src="https://cdn.jsdelivr.net/npm/sql.js@1.13.0/dist/sql-wasm.js"></script>
   <style>
     /* Custom scrollbar for webkit browsers */
     ::-webkit-scrollbar {
@@ -28,10 +30,9 @@
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
     "react": "https://aistudiocdn.com/react@^19.1.1",
-    "sql.js": "https://aistudiocdn.com/sql.js@^1.13.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.18.0",
+    "sql.js": "https://cdn.jsdelivr.net/npm/sql.js@1.13.0",
     "monaco-editor": "https://aistudiocdn.com/monaco-editor@^0.53.0",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.45.0"
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.57.4"
   }
 }
 </script>
@@ -46,6 +47,11 @@
 
   <!-- Babel for in-browser JSX transpilation -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Shim for process.env to prevent crashes in browser-only environments -->
+  <script>
+    window.process = window.process || { env: {} };
+  </script>
 
   <!-- Main application script. The importmap handles all dependencies. -->
   <script type="text/babel" data-type="module" src="/index.tsx"></script>

@@ -5,11 +5,10 @@ import SchemaSidebar from './components/SchemaSidebar';
 import SqlEditor from './components/SqlEditor';
 import ResultsTable from './components/ResultsTable';
 import PasteDataModal from './components/PasteDataModal';
-import { initializeDb, getDbSchema, getDbSchemaSQL } from './services/sqlService';
+import NameModal from './components/NameModal';
+import Footer from './components/Footer';
+import { initializeDb, getDbSchema, getDbSchemaSQL, saveDb } from './services/sqlService';
 import type { Schema, QueryResult, QueryError } from './types';
-import { SAMPLE_DATA } from './constants';
-import { useAuth } from './contexts/AuthContext';
-import Auth from './components/Auth';
 
 const LoadingScreen: React.FC<{ message: string }> = ({ message }) => (
     <div className="flex items-center justify-center h-screen bg-slate-900">
@@ -24,8 +23,6 @@ const LoadingScreen: React.FC<{ message: string }> = ({ message }) => (
 );
 
 const App: React.FC = () => {
-    const { session, loading: authLoading } = useAuth();
-
     const [db, setDb] = useState<Database | null>(null);
     const [schema, setSchema] = useState<Schema>({});
     const [schemaSql, setSchemaSql] = useState<string>('');
@@ -34,6 +31,8 @@ const App: React.FC = () => {
     const [isDbLoading, setIsDbLoading] = useState<boolean>(true);
     const [isQueryRunning, setIsQueryRunning] = useState<boolean>(false);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+    const [userName, setUserName] = useState<string | null>(null);
+    const [showNameModal, setShowNameModal] = useState<boolean>(false);
 
     const refreshSchema = useCallback(async (currentDb: Database) => {
         const newSchema = await getDbSchema(currentDb);
@@ -42,16 +41,23 @@ const App: React.FC = () => {
         setSchemaSql(newSchemaSql);
     }, []);
     
+    // Check for user's name after the database has finished loading.
     useEffect(() => {
-        if (!session) return; // Don't initialize DB if not logged in
+        if (isDbLoading) return; // Wait for the DB to be ready.
 
+        const storedName = localStorage.getItem('sql-studio-user-name');
+        if (storedName) {
+            setUserName(storedName);
+        } else {
+            setShowNameModal(true); // If no name, show the modal.
+        }
+    }, [isDbLoading]);
+
+    useEffect(() => {
         const init = async () => {
             setIsDbLoading(true);
             try {
                 const newDb = await initializeDb();
-                for (const query of SAMPLE_DATA) {
-                    newDb.run(query);
-                }
                 setDb(newDb);
                 await refreshSchema(newDb);
             } catch (error) {
@@ -63,7 +69,7 @@ const App: React.FC = () => {
         };
 
         init();
-    }, [session, refreshSchema]);
+    }, [refreshSchema]);
 
     const runQuery = useCallback(async (sql: string) => {
         if (!db) return;
@@ -79,12 +85,14 @@ const App: React.FC = () => {
                 setQueryResult(lastResult || { columns: [], values: [] });
                 
                 const lowerSql = sql.toLowerCase().trim();
-                if (
-                    lowerSql.startsWith('create') ||
-                    lowerSql.startsWith('alter') ||
-                    lowerSql.startsWith('drop')
-                ) {
-                    await refreshSchema(db);
+                const isDdlQuery = lowerSql.startsWith('create') || lowerSql.startsWith('alter') || lowerSql.startsWith('drop');
+                const isDmlQuery = lowerSql.startsWith('insert') || lowerSql.startsWith('update') || lowerSql.startsWith('delete');
+
+                if (isDdlQuery || isDmlQuery) {
+                    if (isDdlQuery) {
+                        await refreshSchema(db);
+                    }
+                    await saveDb(db);
                 }
             } catch (err) {
                 const error = err as Error;
@@ -107,6 +115,7 @@ const App: React.FC = () => {
                 db.run(sql);
             }
             await refreshSchema(db);
+            await saveDb(db);
         } catch (err) {
             const error = err as Error;
             console.error("Paste data error:", error);
@@ -116,14 +125,12 @@ const App: React.FC = () => {
             setIsModalOpen(false);
         }
     }, [db, refreshSchema]);
-
-    if (authLoading) {
-        return <LoadingScreen message="Authenticating..." />;
-    }
-
-    if (!session) {
-        return <Auth />;
-    }
+    
+    const handleNameSubmit = (name: string) => {
+        localStorage.setItem('sql-studio-user-name', name);
+        setUserName(name);
+        setShowNameModal(false);
+    };
 
     if (isDbLoading) {
         return <LoadingScreen message="Initializing SQL Engine..." />;
@@ -131,7 +138,8 @@ const App: React.FC = () => {
 
     return (
         <div className="h-screen w-screen flex flex-col font-sans bg-slate-900 overflow-hidden">
-            <Header onNewTableClick={() => setIsModalOpen(true)} />
+            {showNameModal && <NameModal onNameSubmit={handleNameSubmit} />}
+            <Header onNewTableClick={() => setIsModalOpen(true)} userName={userName} />
             <main className="flex-grow flex overflow-hidden">
                 <SchemaSidebar schema={schema} />
                 <div className="flex-grow flex flex-col overflow-auto">
@@ -148,6 +156,7 @@ const App: React.FC = () => {
                     />
                 </div>
             </main>
+            <Footer />
             {isModalOpen && (
                 <PasteDataModal 
                     onClose={() => setIsModalOpen(false)} 

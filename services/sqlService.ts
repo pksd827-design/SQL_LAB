@@ -1,8 +1,11 @@
-
 import type { Database } from 'sql.js';
 import type { Schema, Table, Column } from '../types';
+import { loadDb as loadFromIndexedDB, saveDb as saveToIndexedDB } from './indexedDbService';
+import { SAMPLE_DATA } from '../constants';
 
-declare const initSqlJs: (config: { locateFile: (file: string) => string; }) => Promise<{ Database: new (data?: Uint8Array) => Database; }>;
+// Since sql.js is loaded via a <script> tag in index.html, it provides a global function.
+// We declare it here to inform TypeScript about its existence and type.
+declare const initSqlJs: (config?: { locateFile: (file: string) => string }) => Promise<any>;
 
 let dbInstance: Database | null = null;
 
@@ -10,12 +13,41 @@ export const initializeDb = async (): Promise<Database> => {
     if (dbInstance) {
         return dbInstance;
     }
+    
+    // Use the global initSqlJs function provided by the script tag in index.html
     const SQL = await initSqlJs({
-        locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+        locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.13.0/dist/${file}`
     });
-    dbInstance = new SQL.Database();
+
+    const dbData = await loadFromIndexedDB();
+    if (dbData) {
+        console.log("Loading database from IndexedDB...");
+        dbInstance = new SQL.Database(dbData);
+    } else {
+        console.log("Creating new database and seeding with sample data...");
+        dbInstance = new SQL.Database();
+        // Seed with sample data only if the DB is new
+        for (const query of SAMPLE_DATA) {
+            dbInstance.run(query);
+        }
+        // Save the newly seeded database
+        const data = dbInstance.export();
+        await saveToIndexedDB(data);
+        console.log("Initial database seeded and saved to IndexedDB.");
+    }
     return dbInstance;
 };
+
+export const saveDb = async (db: Database): Promise<void> => {
+    try {
+        const data = db.export();
+        await saveToIndexedDB(data);
+        console.log("Database saved to IndexedDB.");
+    } catch(error) {
+        console.error("Failed to save database:", error);
+    }
+};
+
 
 export const getDbSchema = async (db: Database): Promise<Schema> => {
     const schema: Schema = {};
