@@ -4,7 +4,7 @@
  * For a real application, you MUST use a secure backend proxy (like a Netlify function)
  * to protect your key from being publicly accessible.
  */
-const OPENROUTER_API_KEY = "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";
+const OPENROUTER_API_KEY = "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";
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 /**
