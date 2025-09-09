@@ -44,14 +44,10 @@
 <body class="bg-slate-900 text-slate-300">
   <div id="root"></div>
 
-  <!-- React and Babel for JSX -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel for in-browser JSX transpilation -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- sql.js for in-browser SQLite -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
-
+  <!-- Main application script. The importmap handles all dependencies. -->
   <script type="text/babel" data-type="module" src="/index.tsx"></script>
 </body>
 </html>
