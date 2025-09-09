@@ -1,0 +1,5 @@
+{
+  "name": "SQL Studio",
+  "description": "An interactive SQL learning platform to create tables, design schemas, and run queries with AI-powered assistance. Easily paste data to generate tables, write SQL with smart suggestions, and learn through guided challenges.",
+  "requestFramePermissions": []
+}
